@@ -372,9 +372,20 @@ class QuickBuilder
 
         $script = '';
 
+        $modelsBasePath = $this->config->getConfigProperty("database.connections.default.model_paths.0");
+        $modelsBasePath .= "/" . $table->getNamespace() . "/";
+
         foreach ($classTargets as $target) {
-            $class = $this->getConfig()->getConfiguredBuilder($table, $target)->build();
-            $script .= $this->fixNamespaceDeclarations($class);
+
+			// when target is a stub and the stub file exists in the models directory, let's load it
+        	if (substr($target, -4) === "stub" && file_exists($modelsBasePath . $table->getPhpName() . ".php")){
+        		$classFile = $modelsBasePath . $table->getPhpName() . ($target === "querystub" ? "Query" : "") . ".php";
+				$class = file_get_contents($classFile);
+	        } else {
+		        $class = $this->getConfig()->getConfiguredBuilder($table, $target)->build();
+	        }
+
+			$script .= $this->fixNamespaceDeclarations($class);
         }
 
         if ($col = $table->getChildrenColumn()) {
